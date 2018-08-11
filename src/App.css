@@ -195,3 +195,15 @@ svg {
   text-align: center;
   font-size: 0.8em;
 }
+
+.text-center{
+  text-align: center
+}
+
+.link{
+  color:blue;
+}
+
+.link:hover{
+  cursor: pointer;
+}

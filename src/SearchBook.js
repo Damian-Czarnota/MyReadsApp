@@ -12,7 +12,8 @@ class SearchBook extends Component {
 
     state ={
         query: '',
-        books:[]
+        books:[],
+        noResults:false
     }
 
     /**
@@ -20,24 +21,25 @@ class SearchBook extends Component {
      * To prevent double adding the same book to BookList there is a function which compare two arrays - books in BookList and book from searching.
      */
     searchBook = (query) => {
-        this.setState({query:query.trim()})
+        this.setState({query:query})
         if(query.trim()!=='') {
-            BooksAPI.search(query.trim()).then(data => {
-                let newBookList=[];
-                let check = false;
-                    this.setState(() =>{
-                        data.forEach(book =>{
-                            check=false;
-                            this.props.BooksList.forEach(bookL =>{
-                                if(bookL.title===book.title&&bookL.subtitle===book.subtitle)
-                                    check = true;
-                            })
-                            if(!check)
-                                newBookList.push(book);
+            BooksAPI.search(query).then(data => {
+                if(data instanceof Array){
+                data = data.sort(sortBy('title'));
+                this.setState(() =>{
+                    data.forEach(book =>{
+                        this.props.BooksList.forEach(bookL =>{
+                            if(bookL.title===book.title&&bookL.subtitle===book.subtitle)
+                                book.shelf=bookL.shelf;
                         })
-                        newBookList.sort(sortBy('title'));
-                        return {books:newBookList}
                     })
+                    return {books:data}
+                })
+                }
+                else{
+                    this.setState({books:data,
+                        noResults:true})
+                }
             })
         }
         else{
@@ -51,7 +53,8 @@ class SearchBook extends Component {
      */
     clearQuery = () => {
         this.setState({query:'',
-        books:[]})
+        books:[],
+    noResults:false})
     }
 
     /**
@@ -60,8 +63,7 @@ class SearchBook extends Component {
      */
     render(){
         const { updateBook } = this.props;
-        const { query,books } = this.state;
-
+        const { query,books,noResults } = this.state;
         return(
             <div className="search-books">
                 <div className="search-books-bar">
@@ -88,9 +90,9 @@ class SearchBook extends Component {
                                     <li key={book.previewLink}>
                                         <div className="book">
                                             <div className="book-top">
-                                                <div className="book-cover" style={{ width: 128, height: 193, backgroundImage: `url(${book.imageLinks.thumbnail})` }}></div>
+                                            <div className="book-cover" style={{ width: 128, height: 193, backgroundImage: `url(${book.imageLinks && book.imageLinks.smallThumbnail ? book.imageLinks.smallThumbnail : ''})` }}></div>
                                                 <div className="book-shelf-changer">
-                                                    <select value="none" onChange={(e) => updateBook(e,book)}>
+                                                    <select value={book.shelf ? book.shelf:'none'} onChange={(e) => updateBook(e,book)}>
                                                         <option value="move" disabled>Move to...</option>
                                                         <option value="currentlyReading">Currently Reading</option>
                                                         <option value="wantToRead">Want to Read</option>
@@ -107,6 +109,11 @@ class SearchBook extends Component {
                                     </li>
                                 ))}
                             </ol>
+                        )}
+                        {noResults&&(
+                            <p className="text-center">
+                                Sorry, there is no results for your input value. <a className="link" onClick={() => this.clearQuery()}>Clear search</a>
+                            </p>
                         )}
                 </div>
             </div>
